@@ -13,12 +13,10 @@ from ui.components import render_empty_state, render_kicker
 from utils.auth_ui import require_student
 from utils.performance import finish_page_timer
 from utils.streamlit_ui import render_static_table
-from utils.style import apply_app_style
 
 _page_timer = ("progress_concepts", _page_started)
 st.set_page_config(page_title="Concept Performance | AdaptiveLearn AI", page_icon="📈", layout="wide")
 student = require_student()
-apply_app_style()
 
 if st.button("← Back to Progress", key="progress-concepts-back"):
     st.switch_page("pages/4_Progress.py")

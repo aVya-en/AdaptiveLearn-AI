@@ -14,7 +14,6 @@ from ui.components import render_empty_state, render_kicker
 from utils.auth_ui import require_student
 from utils.performance import finish_page_timer
 from utils.streamlit_ui import render_static_table
-from utils.style import apply_app_style
 from utils.performance import measure_stage
 
 _page_timer = ("progress_trends", _page_started)
@@ -67,7 +66,6 @@ def _build_trend_chart_spec(values: list[dict[str, object]]) -> dict[str, object
 
 
 student = require_student()
-apply_app_style()
 
 if st.button("← Back to Progress", key="progress-trends-back"):
     st.switch_page("pages/4_Progress.py")

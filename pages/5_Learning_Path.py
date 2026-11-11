@@ -25,14 +25,12 @@ from modules.learning_profile import get_student_learning_profile
 from modules.quiz_engine import QuizGenerationError, SUBJECT_TOPICS
 from modules.ai_tutor import TutorServiceError
 from utils.auth_ui import require_student
-from utils.performance import finish_page_timer
-from utils.style import apply_app_style
+from utils.performance import finish_page_timer, measure_stage
 from ui.components import render_concept_status, render_kicker, render_learning_recommendation, render_status
 
 _page_timer = ("learning_path", _page_started)
 st.set_page_config(page_title="Learning Path | AdaptiveLearn AI", page_icon="🧭", layout="wide")
 student = require_student(show_usage_details=False)
-apply_app_style()
 student_id = int(student["id"])
 
 subject_options = list(SUBJECT_TOPICS)
@@ -41,23 +39,25 @@ if st.session_state.get("learning_path_subject") not in subject_options:
 subject = st.session_state["learning_path_subject"]
 diagnostic_key = f"learning_diagnostic_{student_id}_{subject}"
 diagnostic_state = st.session_state.get(diagnostic_key)
-latest_diagnostic = get_latest_diagnostic_assessment(student_id, subject)
+with measure_stage("learning_path.data_preparation", provider="local", task="render"):
+    latest_diagnostic = get_latest_diagnostic_assessment(student_id, subject)
 
-try:
-    profile = get_student_learning_profile(student_id)
-    subject_profile = next((row for row in profile["subjects"] if row["subject"] == subject), None)
-    profile_error = None
-except sqlite3.Error as error:
-    subject_profile = None
-    profile_error = f"Could not load your performance profile: {error}"
-
-recommendation_row = get_current_adaptive_recommendation(student_id, subject)
-recommendation = None
-if recommendation_row:
     try:
-        recommendation = json.loads(str(recommendation_row["payload_json"]))
-    except (ValueError, TypeError):
-        recommendation = None
+        profile = get_student_learning_profile(student_id)
+        subject_profile = next((row for row in profile["subjects"] if row["subject"] == subject), None)
+        profile_error = None
+    except sqlite3.Error as error:
+        subject_profile = None
+        profile_error = f"Could not load your performance profile: {error}"
+
+    recommendation_row = get_current_adaptive_recommendation(student_id, subject)
+    recommendation = None
+    with measure_stage("learning_path.recommendation_processing", provider="local", task="render"):
+        if recommendation_row:
+            try:
+                recommendation = json.loads(str(recommendation_row["payload_json"]))
+            except (ValueError, TypeError):
+                recommendation = None
 
 st.markdown("### Your learning overview")
 if latest_diagnostic:

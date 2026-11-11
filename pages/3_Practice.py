@@ -19,14 +19,12 @@ from modules.quiz_engine import (
     submit_quiz,
 )
 from utils.auth_ui import require_student
-from utils.style import apply_app_style
-from utils.performance import finish_page_timer
+from utils.performance import finish_page_timer, measure_stage
 from ui.components import render_kicker
 
 _page_timer = ("practice", _page_started)
 st.set_page_config(page_title="Practice | AdaptiveLearn AI", page_icon="\u270D", layout="wide")
 student = require_student()
-apply_app_style()
 
 render_kicker("Focused practice")
 st.title("Practice")
@@ -98,9 +96,10 @@ def _apply_adaptive_difficulty() -> None:
         if selected_topic not in SUBJECT_TOPICS[selected_subject]:
             selected_topic = SUBJECT_TOPICS[selected_subject][0]
             st.session_state["practice_topic"] = selected_topic
-        st.session_state["practice_difficulty"] = recommended_difficulty(
-            student_id, selected_subject, selected_topic
-        )
+        with measure_stage("practice.adaptive_difficulty_preparation", provider="local", task="render"):
+            st.session_state["practice_difficulty"] = recommended_difficulty(
+                student_id, selected_subject, selected_topic
+            )
 
 
 def _toggle_practice_settings() -> None:
@@ -128,9 +127,10 @@ if quiz_state is None:
     if st.session_state.get("practice_topic") not in SUBJECT_TOPICS[default_subject]:
         st.session_state["practice_topic"] = SUBJECT_TOPICS[default_subject][0]
     if st.session_state.get("practice_difficulty") not in DIFFICULTIES:
-        st.session_state["practice_difficulty"] = recommended_difficulty(
-            student_id, default_subject, st.session_state["practice_topic"]
-        )
+        with measure_stage("practice.adaptive_difficulty_preparation", provider="local", task="render"):
+            st.session_state["practice_difficulty"] = recommended_difficulty(
+                student_id, default_subject, st.session_state["practice_topic"]
+            )
 else:
     if quiz_state.get("student_id") != student_id:
         # Never allow another account to view a quiz left in this browser session.

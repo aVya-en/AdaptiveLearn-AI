@@ -375,7 +375,7 @@ class QuizPersistenceTests(unittest.TestCase):
             app.session_state["practice_quiz_1"]["evaluation"]["review"][0]["explanation"],
             questions[0]["explanation"],
         )
-        self.assertEqual(len(app.expander), 6)  # Five explanation expanders plus local usage.
+        self.assertEqual(len(app.expander), 5)  # One explanation expander per question; sidebar usage UI was removed.
 
     def test_practice_workspace_and_settings_use_responsive_scoped_styles(self) -> None:
         page = Path(__file__).resolve().parent.parent / "pages" / "3_Practice.py"

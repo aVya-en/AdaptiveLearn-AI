@@ -8,18 +8,16 @@ import sqlite3
 
 import streamlit as st
 
-from database.db import get_recent_quiz_attempts
-from modules.learning_profile import get_student_learning_profile
+from database.learning_data import get_learning_data_snapshot
+from modules.learning_profile import build_learning_profile
 from ui.components import render_empty_state, render_kicker
 from utils.auth_ui import require_student
-from utils.performance import finish_page_timer
+from utils.performance import finish_page_timer, measure_stage
 from utils.streamlit_ui import render_static_table
-from utils.style import apply_app_style
 
 _page_timer = ("progress", _page_started)
 st.set_page_config(page_title="Progress | AdaptiveLearn AI", page_icon="📈", layout="wide")
 student = require_student()
-apply_app_style()
 
 render_kicker("Evidence from your practice")
 st.title("Progress")
@@ -36,8 +34,14 @@ def _trend_label(trend: dict[str, object] | None) -> str:
 
 
 try:
-    profile = get_student_learning_profile(int(student["id"]))
-    recent_attempts = get_recent_quiz_attempts(int(student["id"]))
+    with measure_stage("progress.data_preparation", provider="local", task="render"):
+        snapshot = get_learning_data_snapshot(int(student["id"]))
+        profile = build_learning_profile(snapshot)
+        recent_attempts = sorted(
+            snapshot["recent_attempts"],
+            key=lambda row: (str(row["completed_at"]), int(row["id"])),
+            reverse=True,
+        )[:5]
 except sqlite3.Error as error:
     st.error(f"Could not load your progress: {error}")
 else:

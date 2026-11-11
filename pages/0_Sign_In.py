@@ -11,12 +11,10 @@ import streamlit as st
 from modules.auth import authenticate_student, register_student
 from utils.config import load_configuration
 from utils.performance import finish_page_timer
-from utils.style import apply_app_style
 
 _page_timer = ("sign_in", _page_started)
 load_configuration()
 st.set_page_config(page_title="AdaptiveLearn AI | Sign in", page_icon="📘", layout="wide")
-apply_app_style()
 
 if "student" not in st.session_state:
     st.session_state.student = None
@@ -50,12 +48,10 @@ else:
                     confirm_password = st.text_input(
                         "Confirm Password", type="password", icon="", autocomplete="new-password"
                     )
-                    action_left, action_center, action_right = st.columns([1, 2, 1], gap="small")
-                    with action_center:
-                        with st.container(key="auth-primary-action"):
-                            submitted = st.form_submit_button(
-                                "Create Account", type="primary", use_container_width=True
-                            )
+                    with st.container(key="auth-primary-action"):
+                        submitted = st.form_submit_button(
+                            "Create Account", type="primary", use_container_width=True
+                        )
                 if submitted:
                     try:
                         created, message = register_student(full_name, new_email, new_password, confirm_password)
@@ -74,12 +70,10 @@ else:
                 with st.form("login_form"):
                     email = st.text_input("Email Address", type="email", icon="", placeholder="you@example.com")
                     password = st.text_input("Password", type="password", icon="", autocomplete="current-password")
-                    action_left, action_center, action_right = st.columns([1, 2, 1], gap="small")
-                    with action_center:
-                        with st.container(key="auth-primary-action"):
-                            submitted = st.form_submit_button(
-                                "Sign In", type="primary", use_container_width=True
-                            )
+                    with st.container(key="auth-primary-action"):
+                        submitted = st.form_submit_button(
+                            "Sign In", type="primary", use_container_width=True
+                        )
                 if submitted:
                     try:
                         profile = authenticate_student(email, password)

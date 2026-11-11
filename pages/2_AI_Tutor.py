@@ -14,7 +14,6 @@ from modules.ai_tutor import (
 )
 from utils.auth_ui import require_student
 from utils.config import get_gemini_api_key, load_configuration
-from utils.style import apply_app_style
 from utils.performance import finish_page_timer
 from ui.components import render_kicker
 
@@ -22,7 +21,7 @@ _page_timer = ("ai_tutor", _page_started)
 st.set_page_config(page_title="AI Tutor | AdaptiveLearn AI", page_icon="\U0001F4D8", layout="wide")
 load_configuration()
 student = require_student()
-apply_app_style()
+
 
 SUBJECT_TOPICS = {
     "Data Structures and Algorithms": [

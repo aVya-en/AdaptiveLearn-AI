@@ -20,6 +20,7 @@ from database.learning_data import (
 from modules.ai_tutor import TutorServiceError
 from modules import adaptive_learning, adaptive_provider
 from modules.quiz_engine import SUBJECT_TOPICS, submit_quiz
+from ui.styles import GLOBAL_CSS
 
 
 def diagnostic_question(index: int, *, topic: str | None = None, difficulty: str | None = None, concept: str | None = None):
@@ -452,19 +453,19 @@ class AdaptiveLearningTests(unittest.TestCase):
         self.assertTrue(any(button.label == "Start practice" for button in app.button))
         self.assertTrue(any(button.label == "Refresh path" for button in app.button))
         self.assertFalse(app.expander)
-        self.assertIn("grid-template-columns:repeat(4,minmax(0,1fr))", rendered)
-        self.assertIn("grid-auto-rows:220px", rendered)
-        self.assertIn("box-sizing:border-box", rendered)
-        self.assertIn("height:220px; min-width:0; min-height:220px; max-height:220px", rendered)
-        self.assertIn("overflow:hidden", rendered)
-        self.assertIn("overflow-y:auto", rendered)
-        self.assertIn("overflow-x:hidden", rendered)
-        self.assertIn(".st-key-lp-concept-grid .al-concept-tags {", rendered)
-        self.assertIn("flex:0 0 auto", rendered)
-        self.assertIn("--lp-select-control-width:250px; --lp-select-control-height:2.5rem", rendered)
-        self.assertIn(".st-key-lp-subject-control [data-baseweb=\"select\"],", rendered)
-        self.assertIn(".st-key-lp-diagnostic-controls [data-baseweb=\"select\"]", rendered)
-        self.assertIn("justify-content:flex-end", rendered)
+        self.assertIn("grid-template-columns:repeat(4,minmax(0,1fr))", GLOBAL_CSS)
+        self.assertIn("grid-auto-rows:220px", GLOBAL_CSS)
+        self.assertIn("box-sizing:border-box", GLOBAL_CSS)
+        self.assertIn("height:220px; min-width:0; min-height:220px; max-height:220px", GLOBAL_CSS)
+        self.assertIn("overflow:hidden", GLOBAL_CSS)
+        self.assertIn("overflow-y:auto", GLOBAL_CSS)
+        self.assertIn("overflow-x:hidden", GLOBAL_CSS)
+        self.assertIn(".st-key-lp-concept-grid .al-concept-tags {", GLOBAL_CSS)
+        self.assertIn("flex:0 0 auto", GLOBAL_CSS)
+        self.assertIn("--lp-select-control-width:250px; --lp-select-control-height:2.5rem", GLOBAL_CSS)
+        self.assertIn(".st-key-lp-subject-control [data-baseweb=\"select\"],", GLOBAL_CSS)
+        self.assertIn(".st-key-lp-diagnostic-controls [data-baseweb=\"select\"]", GLOBAL_CSS)
+        self.assertIn("justify-content:flex-end", GLOBAL_CSS)
         self.assertNotIn("Input tokens", rendered)
         self.assertNotIn("LOCAL API USAGE", rendered)
         provider.assert_not_called()
@@ -514,10 +515,10 @@ class AdaptiveLearningTests(unittest.TestCase):
         self.assertIn("Apply the concept", rendered)
         self.assertTrue(any(button.label == "Start practice" for button in app.button))
         self.assertTrue(any(button.label == "Refresh path" for button in app.button))
-        self.assertIn(".lp-recommendation-explanation { box-sizing:border-box; width:100%; min-width:0", rendered)
-        self.assertIn(".lp-recommendation-reason { width:100%; max-width:none", rendered)
-        self.assertIn(".st-key-lp-recommendation-actions [data-testid=\"stHorizontalBlock\"] { display:flex!important", rendered)
-        self.assertIn("justify-content:flex-end", rendered)
+        self.assertIn(".lp-recommendation-explanation { box-sizing:border-box; width:100%; min-width:0", GLOBAL_CSS)
+        self.assertIn(".lp-recommendation-reason { width:100%; max-width:none", GLOBAL_CSS)
+        self.assertIn(".st-key-lp-recommendation-actions [data-testid=\"stHorizontalBlock\"] { display:flex!important", GLOBAL_CSS)
+        self.assertIn("justify-content:flex-end", GLOBAL_CSS)
         generate.assert_not_called()
 
     def test_learning_path_all_empty_concept_categories_keep_empty_list_content(self):
@@ -590,7 +591,11 @@ class AdaptiveLearningTests(unittest.TestCase):
         app.session_state["student"] = {
             "id": 1, "display_name": "Student One", "email": "one@example.test",
         }
-        app.run()
+        with patch(
+            "database.db.get_recent_quiz_attempts",
+            side_effect=AssertionError("Progress should reuse the learning snapshot."),
+        ):
+            app.run()
         self.assertFalse(app.exception)
         self.assertEqual(len(app.selectbox), 1)
         self.assertEqual(app.selectbox[0].label, "Explore Subject")

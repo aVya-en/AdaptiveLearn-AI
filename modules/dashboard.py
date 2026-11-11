@@ -4,9 +4,9 @@ import sqlite3
 
 import streamlit as st
 
-from database.db import get_dashboard_overview
+from database.learning_data import get_cached_dashboard_overview
 from ui.components import render_kicker
-from utils.performance import measure_function
+from utils.performance import measure_function, measure_stage
 
 
 SUBJECT_CARDS = (
@@ -79,8 +79,8 @@ def _render_learning_actions(student_id: int) -> None:
 @measure_function("ui.dashboard.subjects", provider="local", task="render")
 def _render_subjects(
     student_id: int,
-    progress_rows: list[sqlite3.Row] | None,
-    subject_stats: list[sqlite3.Row] | None,
+    progress_rows: list[dict[str, object]] | None,
+    subject_stats: list[dict[str, object]] | None,
     *,
     has_error: bool = False,
 ) -> None:
@@ -149,10 +149,11 @@ def render_dashboard(student: dict[str, int | str]) -> None:
     st.markdown('<p class="al-page-description dashboard-welcome-copy">A simple view of your progress and a clear next step for your studies.</p>', unsafe_allow_html=True)
 
     try:
-        overview = get_dashboard_overview(student_id)
-        stats = overview["stats"]
-        progress_rows = overview["progress"]
-        subject_stats = overview["subject_quiz_stats"]
+        with measure_stage("dashboard.data_preparation", provider="local", task="render"):
+            overview = get_cached_dashboard_overview(student_id)
+            stats = overview["stats"]
+            progress_rows = overview["progress"]
+            subject_stats = overview["subject_quiz_stats"]
         data_error = False
     except sqlite3.Error as error:
         st.error(f"Could not load your learning data: {error}")

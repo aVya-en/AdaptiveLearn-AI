@@ -223,7 +223,22 @@ class GeminiTutorTests(unittest.TestCase):
             app.run()
             self.assertFalse(app.exception)
             self.assertTrue(any("AdaptiveLearn AI" in str(item.value) for item in app.markdown))
-            self.assertTrue(any("Usage details" in str(item.label) for item in app.expander))
+            self.assertFalse(any("Usage details" in str(item.label) for item in app.expander))
+            self.assertFalse(any("LOCAL API USAGE" in str(item.value) for item in app.markdown))
+            brand_index = next(i for i, item in enumerate(app.markdown) if "AdaptiveLearn AI" in str(item.value))
+            account_index = next(i for i, item in enumerate(app.markdown) if "ACCOUNT" in str(item.value))
+            self.assertLess(brand_index, account_index)
+            sidebar_blocks = list(app.sidebar.children.values())
+            self.assertEqual(len(sidebar_blocks), 3)
+            brand_block, learn_block, account_block = sidebar_blocks
+            self.assertIn("AdaptiveLearn AI", str(next(iter(brand_block.children.values())).value))
+            learn_items = list(learn_block.children.values())
+            self.assertIn("LEARN", str(learn_items[0].value))
+            self.assertEqual(
+                [item.label for item in learn_items[1:]],
+                ["Dashboard", "Learning Path", "Practice", "AI Tutor", "Progress"],
+            )
+            self.assertIn("ACCOUNT", str(next(iter(account_block.children.values())).value))
             self.assertTrue(any(item.label == "Log out" for item in app.button))
             app.button(key="adaptivelearn_logout").click().run()
             self.assertIsNone(app.session_state.get("student"))

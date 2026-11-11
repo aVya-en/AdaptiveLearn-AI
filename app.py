@@ -11,6 +11,7 @@ import streamlit as st
 from database.db import initialize_database
 from utils.config import load_configuration
 from utils.performance import finish_page_timer
+from utils.style import apply_app_style
 
 load_configuration()
 st.set_page_config(page_title="AdaptiveLearn AI", page_icon="📘", layout="wide")
@@ -23,33 +24,34 @@ except sqlite3.Error as error:
     st.stop()
 
 is_authenticated = bool(st.session_state.get("student"))
+apply_app_style()
+
 visibility = "visible" if is_authenticated else "hidden"
-navigation_pages = {
-    "LEARN": [
-        st.Page("pages/1_Dashboard.py", title="Dashboard", icon=":material/dashboard:", default=is_authenticated, visibility=visibility),
-        st.Page("pages/5_Learning_Path.py", title="Learning Path", icon=":material/route:", visibility=visibility),
-        st.Page("pages/3_Practice.py", title="Practice", icon=":material/edit_note:", visibility=visibility),
-        st.Page("pages/2_AI_Tutor.py", title="AI Tutor", icon=":material/forum:", visibility=visibility),
-        st.Page("pages/4_Progress.py", title="Progress", icon=":material/monitoring:", visibility=visibility),
-        st.Page(
-            "pages/6_Concept_Performance.py", title="Concept Performance",
-            icon=":material/analytics:", url_path="concept-performance", visibility="hidden",
-        ),
-        st.Page(
-            "pages/7_Recent_Trends.py", title="Recent Trends",
-            icon=":material/trending_up:", url_path="recent-trends", visibility="hidden",
-        ),
-    ],
-    "ACCOUNT": [
-        st.Page(
-            "pages/0_Sign_In.py",
-            title="Sign in",
-            icon=":material/person:",
-            default=not is_authenticated,
-            visibility="hidden" if is_authenticated else "visible",
-        ),
-    ],
-}
+learn_pages = [
+    st.Page("pages/1_Dashboard.py", title="Dashboard", icon=":material/dashboard:", default=is_authenticated, visibility=visibility),
+    st.Page("pages/5_Learning_Path.py", title="Learning Path", icon=":material/route:", visibility=visibility),
+    st.Page("pages/3_Practice.py", title="Practice", icon=":material/edit_note:", visibility=visibility),
+    st.Page("pages/2_AI_Tutor.py", title="AI Tutor", icon=":material/forum:", visibility=visibility),
+    st.Page("pages/4_Progress.py", title="Progress", icon=":material/monitoring:", visibility=visibility),
+]
+hidden_pages = [
+    st.Page(
+        "pages/6_Concept_Performance.py", title="Concept Performance",
+        icon=":material/analytics:", url_path="concept-performance", visibility="hidden",
+    ),
+    st.Page(
+        "pages/7_Recent_Trends.py", title="Recent Trends",
+        icon=":material/trending_up:", url_path="recent-trends", visibility="hidden",
+    ),
+]
+sign_in_page = st.Page(
+    "pages/0_Sign_In.py",
+    title="Sign in",
+    icon=":material/person:",
+    default=not is_authenticated,
+    visibility="hidden" if is_authenticated else "visible",
+)
+navigation_pages = {"LEARN": [*learn_pages, *hidden_pages], "ACCOUNT": [sign_in_page]}
 
 if is_authenticated:
     with st.sidebar:
@@ -59,7 +61,11 @@ if is_authenticated:
                 '<div><strong>AdaptiveLearn AI</strong><small>AI-powered learning workspace</small></div></div>',
                 unsafe_allow_html=True,
             )
+        with st.container(key="adaptivelearn-sidebar-navigation"):
+            st.markdown('<div class="adaptivelearn-section-label">LEARN</div>', unsafe_allow_html=True)
+            for learn_page in learn_pages:
+                st.page_link(learn_page, use_container_width=True)
 
-page = st.navigation(navigation_pages, position="sidebar" if is_authenticated else "hidden", expanded=True)
+page = st.navigation(navigation_pages, position="hidden", expanded=True)
 page.run()
 finish_page_timer(("entrypoint", _page_started))

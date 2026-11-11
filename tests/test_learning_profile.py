@@ -7,7 +7,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 from database import db as database
-from database.learning_data import get_learning_data_snapshot
+from database.learning_data import (
+    get_cached_dashboard_overview,
+    get_learning_data_snapshot,
+)
 from modules.learning_profile import (
     MIN_CONCEPT_QUESTIONS,
     get_student_learning_profile,
@@ -170,6 +173,24 @@ class LearningProfileTests(unittest.TestCase):
         other_student = get_learning_data_snapshot(2)
         self.assertEqual(refreshed["subjects"][0]["quiz_count"], 1)
         self.assertEqual(other_student["subjects"], [])
+
+    def test_dashboard_overview_cache_is_student_scoped_and_invalidated_after_submission(self):
+        with patch.object(database, "get_dashboard_overview", wraps=database.get_dashboard_overview) as load:
+            first = get_cached_dashboard_overview(1)
+            warm = get_cached_dashboard_overview(1)
+            other_student = get_cached_dashboard_overview(2)
+            self.assertEqual(load.call_count, 2)
+            self.assertEqual(first, warm)
+            self.assertEqual(other_student["stats"]["quizzes_completed"], 0)
+
+            database.save_quiz_attempt(
+                1, "DSA", "Arrays and strings", "Beginner", 5, 4, 80.0, "dashboard-cache-refresh"
+            )
+            refreshed = get_cached_dashboard_overview(1)
+
+        self.assertEqual(load.call_count, 3)
+        self.assertEqual(refreshed["stats"]["quizzes_completed"], 1)
+        self.assertEqual(other_student["stats"]["quizzes_completed"], 0)
 
     def test_valid_concept_and_topic_remain_separate(self):
         submit_quiz(1, quiz_state(1, "separate-valid", [1], "Queue operations"))

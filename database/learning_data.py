@@ -18,23 +18,53 @@ def _cached_learning_data_snapshot(
     return _query_learning_data_snapshot(student_id)
 
 
-@measure_function("database.get_learning_data_snapshot")
-def get_learning_data_snapshot(student_id: int) -> dict[str, list[dict[str, object]]]:
-    """Return a cached snapshot for this student and current SQLite file version."""
+@st.cache_data(ttl=60, show_spinner=False)
+def _cached_dashboard_overview(
+    student_id: int,
+    database_path: str,
+    database_signature: tuple[int, int] | None,
+) -> dict[str, object]:
+    del database_path, database_signature
+    overview = database.get_dashboard_overview(student_id)
+    return {
+        "stats": dict(overview["stats"]),
+        "progress": [dict(row) for row in overview["progress"]],
+        "recent_attempts": [dict(row) for row in overview["recent_attempts"]],
+        "subject_quiz_stats": [dict(row) for row in overview["subject_quiz_stats"]],
+    }
+
+
+def _database_cache_key() -> tuple[str, tuple[int, int] | None]:
     path = database.DATABASE_PATH
     try:
         file_stat = path.stat()
         signature = (file_stat.st_mtime_ns, file_stat.st_size)
     except OSError:
         signature = None
-    return _cached_learning_data_snapshot(student_id, str(path.resolve()), signature)
+    return str(path.resolve()), signature
+
+
+@measure_function("database.get_learning_data_snapshot")
+def get_learning_data_snapshot(student_id: int) -> dict[str, list[dict[str, object]]]:
+    """Return a cached snapshot for this student and current SQLite file version."""
+    database_path, signature = _database_cache_key()
+    return _cached_learning_data_snapshot(student_id, database_path, signature)
+
+
+@measure_function("database.get_cached_dashboard_overview")
+def get_cached_dashboard_overview(student_id: int) -> dict[str, object]:
+    """Return a student-scoped dashboard overview for the current database version."""
+    database_path, signature = _database_cache_key()
+    return _cached_dashboard_overview(student_id, database_path, signature)
 
 
 def clear_learning_data_snapshot_cache() -> None:
-    """Invalidate cached snapshots after this process changes learning records."""
+    """Invalidate cached learning and dashboard data after this process changes records."""
     _cached_learning_data_snapshot.clear()
+    _cached_dashboard_overview.clear()
 
 
+@measure_function("database.query_learning_data_snapshot")
 def _query_learning_data_snapshot(student_id: int) -> dict[str, list[dict[str, object]]]:
     """Build aggregate rows and a bounded recent-attempt window for one student."""
     connection = get_connection()
@@ -125,14 +155,15 @@ def _query_learning_data_snapshot(student_id: int) -> dict[str, list[dict[str, o
         recent_attempts = connection.execute(
             """
             WITH ranked AS (
-                SELECT subject, topic, difficulty, score, completed_at, id,
+                SELECT subject, topic, difficulty, total_questions, score, completed_at, id,
                        ROW_NUMBER() OVER (
                            PARTITION BY subject ORDER BY completed_at DESC, id DESC
                        ) AS recent_rank
                 FROM quiz_attempts
                 WHERE student_id = ?
             )
-            SELECT subject, topic, difficulty, score, completed_at, id, recent_rank
+            SELECT subject, topic, difficulty, total_questions, score,
+                   completed_at, id, recent_rank
             FROM ranked
             WHERE recent_rank <= 10
             ORDER BY subject, recent_rank
