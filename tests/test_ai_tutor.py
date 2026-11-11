@@ -19,9 +19,12 @@ class GeminiTutorTests(unittest.TestCase):
     def setUp(self) -> None:
         from modules import gemini_credentials
         gemini_credentials.clear_state()
+        self.secrets_patch = patch("utils.config._get_streamlit_secret", return_value=None)
+        self.secrets_patch.start()
 
     def tearDown(self) -> None:
         from modules import gemini_credentials
+        self.secrets_patch.stop()
         gemini_credentials.clear_state()
 
     def test_environment_configuration(self) -> None:

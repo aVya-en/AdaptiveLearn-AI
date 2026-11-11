@@ -148,7 +148,7 @@ with st.container(key="tutor-layout"):
                         unsafe_allow_html=True,
                     )
                 if not get_gemini_api_key():
-                    st.warning("Tutor setup is incomplete. Add a key to GEMINI_API_KEY_1, GEMINI_API_KEY_2, or GEMINI_API_KEY_3 in your local .env file to enable Gemini responses.")
+                    st.warning("Tutor setup is incomplete. Configure GEMINI_API_KEY_1, GEMINI_API_KEY_2, or GEMINI_API_KEY_3 in your environment or Streamlit secrets to enable Gemini responses.")
 
                 for message in conversation["messages"]:
                     with st.chat_message(message["role"]):

@@ -4,10 +4,9 @@ from time import perf_counter as _perf_counter
 
 _page_started = _perf_counter()
 
-import sqlite3
-
 import streamlit as st
 
+from database.db import DATABASE_ERRORS
 from modules.auth import authenticate_student, register_student
 from utils.config import load_configuration
 from utils.performance import finish_page_timer
@@ -55,7 +54,7 @@ else:
                 if submitted:
                     try:
                         created, message = register_student(full_name, new_email, new_password, confirm_password)
-                    except sqlite3.Error as error:
+                    except DATABASE_ERRORS as error:
                         st.error(f"Could not create your account because of a database error: {error}")
                     else:
                         (st.success if created else st.error)(message)
@@ -77,7 +76,7 @@ else:
                 if submitted:
                     try:
                         profile = authenticate_student(email, password)
-                    except sqlite3.Error as error:
+                    except DATABASE_ERRORS as error:
                         st.error(f"Could not sign in because of a database error: {error}")
                     else:
                         if profile:

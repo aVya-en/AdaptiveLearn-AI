@@ -4,9 +4,9 @@ import hashlib
 import hmac
 import re
 import secrets
-import sqlite3
 
-from database.db import get_connection
+
+from database.db import INTEGRITY_ERRORS, get_connection
 from utils.performance import measure_function
 
 _EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
@@ -54,7 +54,7 @@ def register_student(full_name: str, email: str, password: str, confirm_password
         )
         connection.commit()
         return True, "Account created. You can now sign in."
-    except sqlite3.IntegrityError:
+    except INTEGRITY_ERRORS:
         return False, "An account with that email already exists."
     finally:
         connection.close()

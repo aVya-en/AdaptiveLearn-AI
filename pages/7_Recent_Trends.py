@@ -4,10 +4,9 @@ from time import perf_counter as _perf_counter
 
 _page_started = _perf_counter()
 
-import sqlite3
-
 import streamlit as st
 
+from database.db import DATABASE_ERRORS
 from database.learning_data import get_learning_data_snapshot
 from modules.learning_profile import build_learning_profile
 from ui.components import render_empty_state, render_kicker
@@ -98,7 +97,7 @@ st.markdown(
 try:
     snapshot = get_learning_data_snapshot(int(student["id"]))
     profile = build_learning_profile(snapshot)
-except sqlite3.Error as error:
+except DATABASE_ERRORS as error:
     st.error(f"Could not load your recent trends: {error}")
 else:
     subjects = profile["subjects"]

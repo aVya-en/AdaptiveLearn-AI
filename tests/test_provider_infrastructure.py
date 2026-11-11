@@ -18,8 +18,11 @@ from utils.config import (
 class ProviderInfrastructureTests(unittest.TestCase):
     def setUp(self):
         gemini_credentials.clear_state()
+        self.secrets_patch = patch("utils.config._get_streamlit_secret", return_value=None)
+        self.secrets_patch.start()
 
     def tearDown(self):
+        self.secrets_patch.stop()
         gemini_credentials.clear_state()
 
     def test_three_gemini_slots_ignore_empty_and_keep_legacy_compatibility(self):

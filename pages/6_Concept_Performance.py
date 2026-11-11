@@ -4,10 +4,9 @@ from time import perf_counter as _perf_counter
 
 _page_started = _perf_counter()
 
-import sqlite3
-
 import streamlit as st
 
+from database.db import DATABASE_ERRORS
 from modules.learning_profile import get_student_learning_profile
 from ui.components import render_empty_state, render_kicker
 from utils.auth_ui import require_student
@@ -29,7 +28,7 @@ st.markdown(
 
 try:
     profile = get_student_learning_profile(int(student["id"]))
-except sqlite3.Error as error:
+except DATABASE_ERRORS as error:
     st.error(f"Could not load your concept performance: {error}")
 else:
     subjects = profile["subjects"]

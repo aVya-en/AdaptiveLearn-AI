@@ -4,11 +4,9 @@ from time import perf_counter as _perf_counter
 
 _page_started = _perf_counter()
 
-import sqlite3
-
 import streamlit as st
 
-from database.db import initialize_database
+from database.db import DATABASE_ERRORS, initialize_database
 from utils.config import load_configuration
 from utils.performance import finish_page_timer
 from utils.style import apply_app_style
@@ -19,7 +17,7 @@ st.set_option("client.toolbarMode", "minimal")
 
 try:
     initialize_database()
-except sqlite3.Error as error:
+except DATABASE_ERRORS as error:
     st.error(f"Could not initialize the local database: {error}")
     st.stop()
 

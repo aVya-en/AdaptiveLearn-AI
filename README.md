@@ -1,8 +1,9 @@
 # AdaptiveLearn AI
 
 AdaptiveLearn AI is an adaptive learning platform scaffold for B.Tech and
-engineering students. It is built with Python and Streamlit, with SQLite for
-local persistence and Google Gemini powering the AI Tutor.
+engineering students. It is built with Python and Streamlit, with PostgreSQL
+support for hosted persistence, SQLite for local development, and Google Gemini
+powering the AI Tutor.
 
 ## Current status
 
@@ -10,8 +11,9 @@ The current version provides student registration and login, an account-specific
 dashboard, practice quizzes, diagnostic and adaptive learning paths, progress
 reports, concept performance, recent trends, and an AI Tutor. Passwords are
 stored as salted PBKDF2-HMAC-SHA256 hashes; student learning records are kept in
-SQLite. Tutor chat stays in the active Streamlit session and is not written to
-SQLite. AI generation starts only after an explicit student action.
+the configured database. Tutor chat stays in the active Streamlit session and
+is not written to the database. AI generation starts only after an explicit
+student action.
 
 ## Visual theme
 
@@ -77,6 +79,20 @@ automatically at `database/adaptivelearn.db`. Register with your name, email,
 and a password of at least eight characters. The dashboard displays only data
 associated with the signed-in student's ID.
 
+## Database configuration
+
+SQLite remains the default when `DATABASE_URL` is unset. To use PostgreSQL,
+set `DATABASE_URL` to a PostgreSQL connection URL in the process environment.
+For Streamlit Community Cloud, add `DATABASE_URL` to the app's Secrets settings;
+the application reads that setting without displaying or logging it. PostgreSQL
+schema initialization is versioned and safe to run concurrently across app
+workers. PostgreSQL writes commit transactionally and student-scoped learning
+queries bypass the SQLite file cache to avoid stale results across workers.
+
+Choosing PostgreSQL does not import, copy, or modify the local SQLite database.
+Existing local accounts and learning history remain in SQLite until a separately
+planned data migration is performed.
+
 ## Authentication and local data
 
 The `students` table stores profile fields, a unique normalized email, and the
@@ -99,8 +115,10 @@ the sidebar, and signing back in.
 
 ## AI Tutor configuration
 
-Copy `.env.example` to `.env` if you have not already, then set one or more
-`GEMINI_API_KEY_1` through `GEMINI_API_KEY_3` values. The legacy
+For local development, copy `.env.example` to `.env` and set one or more
+`GEMINI_API_KEY_1` through `GEMINI_API_KEY_3` values. For Streamlit Community
+Cloud, configure the same names in the app's Secrets settings. Environment
+variables take precedence over Streamlit secrets. The legacy
 `GEMINI_API_KEY` value remains supported. `GEMINI_MODEL` defaults to
 `gemini-3.6-flash`; `GEMINI_FALLBACK_MODEL` defaults to `gemini-3.5-flash`.
 Optional `GEMINI_PROJECT_ID_1` through `_3` labels let the app suppress keys
@@ -161,8 +179,9 @@ adaptive request is not duplicated; rate-limit `retry-after` values establish
 a process-local cooldown. AI Tutor and quiz generation remain Gemini-only.
 Usage counters separately report Groq token metadata and Gemini usage.
 
-Groq settings are `GROQ_API_KEY=`, `GROQ_MODEL=openai/gpt-oss-120b`, and
-`GROQ_ALLOW_API_USAGE=false`. The 120B GPT-OSS model is the default recommendation
+Groq settings are `GROQ_API_KEY`, `GROQ_MODEL`, and
+`GROQ_ALLOW_API_USAGE=false`; configure them in environment variables or
+Streamlit secrets, with environment variables taking precedence. The 120B GPT-OSS model is the default recommendation
 for adaptive reasoning; the 20B variant can be a faster, lighter alternative.
 Groq documents strict JSON Schema output for these GPT-OSS models. Its published
 Free Plan limits view lists 30 RPM, 1,000 RPD, 8,000 TPM, and 200,000 TPD for

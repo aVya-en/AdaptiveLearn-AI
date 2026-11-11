@@ -1,9 +1,8 @@
 """Student dashboard presentation backed only by saved learning records."""
 
-import sqlite3
-
 import streamlit as st
 
+from database.db import DATABASE_ERRORS, DatabaseRowLike
 from database.learning_data import get_cached_dashboard_overview
 from ui.components import render_kicker
 from utils.performance import measure_function, measure_stage
@@ -114,7 +113,7 @@ def _render_subjects(
 
 
 @measure_function("ui.dashboard.recommendations", provider="local", task="render")
-def _render_recommendations(student_id: int, progress_rows: list[sqlite3.Row] | None) -> None:
+def _render_recommendations(student_id: int, progress_rows: list[DatabaseRowLike] | None) -> None:
     st.markdown("### Recommended next topics")
     in_progress = [row for row in (progress_rows or []) if row["status"] == "in_progress"]
     if in_progress:
@@ -155,7 +154,7 @@ def render_dashboard(student: dict[str, int | str]) -> None:
             progress_rows = overview["progress"]
             subject_stats = overview["subject_quiz_stats"]
         data_error = False
-    except sqlite3.Error as error:
+    except DATABASE_ERRORS as error:
         st.error(f"Could not load your learning data: {error}")
         stats = progress_rows = subject_stats = None
         data_error = True

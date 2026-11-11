@@ -4,11 +4,11 @@ from time import perf_counter as _perf_counter
 
 _page_started = _perf_counter()
 
-import sqlite3
 import uuid
 
 import streamlit as st
 
+from database.db import DATABASE_ERRORS
 from modules.adaptive_learning import recommended_difficulty
 from modules.quiz_engine import (
     DIFFICULTIES,
@@ -83,7 +83,7 @@ def _render_results(state: dict) -> None:
 def _persist_submission(state: dict) -> None:
     try:
         submit_quiz(student_id, state)
-    except (sqlite3.Error, ValueError, PermissionError, RuntimeError) as error:
+    except (*DATABASE_ERRORS, ValueError, PermissionError, RuntimeError) as error:
         st.error(f"Could not save this quiz attempt: {error}")
     else:
         st.rerun()

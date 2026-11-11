@@ -40,8 +40,11 @@ class QuizModelFallbackTests(unittest.TestCase):
     def setUp(self) -> None:
         quiz_engine.clear_quiz_cache()
         ai_tutor.gemini_credentials.clear_state()
+        self.secrets_patch = patch("utils.config._get_streamlit_secret", return_value=None)
+        self.secrets_patch.start()
 
     def tearDown(self) -> None:
+        self.secrets_patch.stop()
         ai_tutor.gemini_credentials.clear_state()
 
     def generate_with_mocked_requests(self, request_side_effect):

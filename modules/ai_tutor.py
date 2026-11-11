@@ -309,7 +309,7 @@ def _api_error_message(status: int | None, model: str, details: str = "") -> str
     """Translate Gemini status codes into actionable, sanitized UI messages."""
     normalized_details = details.casefold()
     if "api_key_invalid" in normalized_details or "api key not valid" in normalized_details:
-        return "Gemini rejected the configured API key. Set a valid Gemini API key in GEMINI_API_KEY_1 through GEMINI_API_KEY_3, then restart the app."
+        return "Gemini rejected the configured API key. Set a valid Gemini API key in GEMINI_API_KEY_1 through GEMINI_API_KEY_3 in the environment or Streamlit secrets, then restart the app."
     if status == 401:
         return "Gemini rejected the API key (401). Check that the configured key is valid and has not been revoked."
     if status == 403:
@@ -837,7 +837,7 @@ def test_gemini_connection() -> ConnectionTestResult:
         load_configuration()
         api_key = get_gemini_api_key()
         if not api_key:
-            raise MissingAPIKeyError("No Gemini API credentials are configured. Set one of GEMINI_API_KEY_1 through GEMINI_API_KEY_3 in the environment or local .env file.")
+            raise MissingAPIKeyError("No Gemini API credentials are configured. Set one of GEMINI_API_KEY_1 through GEMINI_API_KEY_3 in the environment or Streamlit secrets.")
         model = get_gemini_model()
         response = _request_gemini_with_fallback(
             api_key,
@@ -902,7 +902,7 @@ def list_available_gemini_models() -> list[GeminiModelInfo]:
     load_configuration()
     api_key = get_gemini_api_key()
     if not api_key:
-        raise MissingAPIKeyError("No Gemini API credentials are configured. Set one of GEMINI_API_KEY_1 through GEMINI_API_KEY_3 in the environment or local .env file.")
+        raise MissingAPIKeyError("No Gemini API credentials are configured. Set one of GEMINI_API_KEY_1 through GEMINI_API_KEY_3 in the environment or Streamlit secrets.")
 
     (errors, types), httpx = _load_genai_support()
     try:
@@ -965,7 +965,7 @@ def _generate_tutor_response(
     api_key = get_gemini_api_key()
     if not api_key:
         raise MissingAPIKeyError(
-            "Gemini is not configured. Add a Gemini key to GEMINI_API_KEY_1 through GEMINI_API_KEY_3 in your local .env file and restart the app."
+            "Gemini is not configured. Add a Gemini key to GEMINI_API_KEY_1 through GEMINI_API_KEY_3 in the environment or Streamlit secrets, then restart the app."
         )
     if not question.strip():
         raise TutorServiceError("Enter a question before sending.")
@@ -999,7 +999,7 @@ def generate_structured_content(
     api_key = get_gemini_api_key()
     if not api_key:
         raise MissingAPIKeyError(
-            "Gemini is not configured. Add a Gemini key to GEMINI_API_KEY_1 through GEMINI_API_KEY_3 in your local .env file and restart the app."
+            "Gemini is not configured. Add a Gemini key to GEMINI_API_KEY_1 through GEMINI_API_KEY_3 in the environment or Streamlit secrets, then restart the app."
         )
     (_errors, types), _httpx = _load_genai_support()
     response = _request_gemini_with_fallback(

@@ -1,9 +1,11 @@
 """Efficient student-scoped queries for concept and subject performance."""
 
+import hashlib
+
 import streamlit as st
 
 from database import db as database
-from database.db import get_connection
+from database.db import get_connection, get_database_backend
 from utils.performance import measure_function
 
 
@@ -35,6 +37,9 @@ def _cached_dashboard_overview(
 
 
 def _database_cache_key() -> tuple[str, tuple[int, int] | None]:
+    if get_database_backend() == "postgresql":
+        database_url = database.get_database_url() or ""
+        return "postgresql:" + hashlib.sha256(database_url.encode("utf-8")).hexdigest(), None
     path = database.DATABASE_PATH
     try:
         file_stat = path.stat()
@@ -46,14 +51,24 @@ def _database_cache_key() -> tuple[str, tuple[int, int] | None]:
 
 @measure_function("database.get_learning_data_snapshot")
 def get_learning_data_snapshot(student_id: int) -> dict[str, list[dict[str, object]]]:
-    """Return a cached snapshot for this student and current SQLite file version."""
+    """Return fresh PostgreSQL data or cached SQLite data for this student."""
+    if get_database_backend() == "postgresql":
+        return _query_learning_data_snapshot(student_id)
     database_path, signature = _database_cache_key()
     return _cached_learning_data_snapshot(student_id, database_path, signature)
 
 
 @measure_function("database.get_cached_dashboard_overview")
 def get_cached_dashboard_overview(student_id: int) -> dict[str, object]:
-    """Return a student-scoped dashboard overview for the current database version."""
+    """Return fresh PostgreSQL data or the cached SQLite dashboard overview."""
+    if get_database_backend() == "postgresql":
+        overview = database.get_dashboard_overview(student_id)
+        return {
+            "stats": dict(overview["stats"]),
+            "progress": [dict(row) for row in overview["progress"]],
+            "recent_attempts": [dict(row) for row in overview["recent_attempts"]],
+            "subject_quiz_stats": [dict(row) for row in overview["subject_quiz_stats"]],
+        }
     database_path, signature = _database_cache_key()
     return _cached_dashboard_overview(student_id, database_path, signature)
 
@@ -284,9 +299,9 @@ def save_adaptive_recommendation(
     connection = get_connection()
     try:
         latest = connection.execute(
-            "SELECT MAX(id) FROM quiz_attempts WHERE student_id = ? AND subject = ?",
+            "SELECT MAX(id) AS latest_id FROM quiz_attempts WHERE student_id = ? AND subject = ?",
             (student_id, subject),
-        ).fetchone()[0]
+        ).fetchone()["latest_id"]
         status = "current" if latest == source_attempt_id else "stale"
         connection.execute(
             """

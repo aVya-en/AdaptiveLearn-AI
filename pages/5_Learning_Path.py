@@ -4,12 +4,12 @@ from time import perf_counter as _perf_counter
 
 _page_started = _perf_counter()
 
-import sqlite3
 import json
 import uuid
 
 import streamlit as st
 
+from database.db import DATABASE_ERRORS
 from database.learning_data import (
     get_current_adaptive_recommendation,
     get_latest_diagnostic_assessment,
@@ -46,7 +46,7 @@ with measure_stage("learning_path.data_preparation", provider="local", task="ren
         profile = get_student_learning_profile(student_id)
         subject_profile = next((row for row in profile["subjects"] if row["subject"] == subject), None)
         profile_error = None
-    except sqlite3.Error as error:
+    except DATABASE_ERRORS as error:
         subject_profile = None
         profile_error = f"Could not load your performance profile: {error}"
 
@@ -169,7 +169,7 @@ if diagnostic_state and not diagnostic_state.get("submitted"):
         try:
             submit_diagnostic(student_id, diagnostic_state)
             st.rerun()
-        except (sqlite3.Error, ValueError, PermissionError, RuntimeError) as error:
+        except (*DATABASE_ERRORS, ValueError, PermissionError, RuntimeError) as error:
             st.error(f"Could not save the diagnostic: {error}")
 
 st.markdown("### Concept mastery")
@@ -241,7 +241,7 @@ if generate_path:
             get_learning_recommendation(student_id, subject, force_refresh=True)
         st.success("Your learning path is up to date.")
         st.rerun()
-    except (AdaptiveLearningError, TutorServiceError, ValueError, sqlite3.Error) as error:
+    except (AdaptiveLearningError, TutorServiceError, ValueError, *DATABASE_ERRORS) as error:
         st.error(str(error))
 
 finish_page_timer(_page_timer)
