@@ -143,6 +143,20 @@ class GeminiTutorTests(unittest.TestCase):
         conversation = app.session_state[ai_tutor.conversation_key(55)]
         self.assertEqual(len(conversation["messages"]), 2)
 
+    def test_whitespace_tutor_prompt_does_not_create_a_failed_conversation_turn(self) -> None:
+        app = AppTest.from_file(Path(__file__).resolve().parent.parent / "pages" / "2_AI_Tutor.py")
+        app.session_state["student"] = {"id": 61, "display_name": "Tutor Test", "email": "tutor@example.com"}
+        with patch("modules.ai_tutor.generate_tutor_response") as generate:
+            app.run()
+            app.chat_input[0].set_value("   ").run()
+
+        self.assertFalse(app.exception)
+        generate.assert_not_called()
+        conversation = app.session_state[ai_tutor.conversation_key(61)]
+        self.assertEqual(conversation["messages"], [])
+        self.assertNotIn("pending_request", conversation)
+        self.assertTrue(any("Enter a question before sending." in item.value for item in app.warning))
+
     def test_tutor_settings_drawer_toggles_without_request_and_preserves_state(self) -> None:
         app = AppTest.from_file(Path(__file__).resolve().parent.parent / "pages" / "2_AI_Tutor.py")
         app.session_state["student"] = {"id": 57, "display_name": "Tutor Test", "email": "tutor@example.com"}

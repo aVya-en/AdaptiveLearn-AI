@@ -6,14 +6,19 @@ local persistence and Google Gemini powering the AI Tutor.
 
 ## Current status
 
-The current version provides student registration and login, persistent
-SQLite accounts, an account-specific dashboard, and the initial learning data
-tables. Passwords are stored as salted PBKDF2-HMAC-SHA256 hashes. Learning
-progress is not yet collected by the interface, while quiz attempts are saved
-after submission and shown on the dashboard. Generic starting topics are
-labelled as suggestions and are not presented as personalized recommendations.
-The AI Tutor and structured Gemini quiz generator are implemented. Tutor chat
-stays in the active Streamlit session and is not written to SQLite.
+The current version provides student registration and login, an account-specific
+dashboard, practice quizzes, diagnostic and adaptive learning paths, progress
+reports, concept performance, recent trends, and an AI Tutor. Passwords are
+stored as salted PBKDF2-HMAC-SHA256 hashes; student learning records are kept in
+SQLite. Tutor chat stays in the active Streamlit session and is not written to
+SQLite. AI generation starts only after an explicit student action.
+
+## Visual theme
+
+The application uses a shared light palette and design tokens defined in
+`ui/theme.py`. Streamlit controls and shared page components use the same
+accessible surfaces, borders, focus states, and semantic status colors through
+`ui/styles.py`.
 
 ## Project structure
 
@@ -172,7 +177,7 @@ enable Groq automatically.
 Sign in and open Practice. Choose DSA, Python, or DBMS; select a listed topic,
 difficulty, and 5, 10, or 15 questions; then generate the quiz. Answer one
 question at a time, use Previous and Next to review selections, and submit.
-If answers are blank, confirm whether to submit with unanswered questions.
+Blank answers can be submitted; they are saved as unanswered and earn no points.
 Correct answers and explanations appear only after submission. Completed
 attempts appear in the dashboard's recent attempts and subject averages.
 Question generation requires the configured Gemini key and model; failed or
@@ -184,6 +189,8 @@ NULL correctness value and are excluded from concept attempt accuracy. A version
 additive SQLite migration creates `quiz_responses` and its indexes without removing
 existing accounts or attempts. Existing attempts retain their aggregate totals and
 scores; no individual answers or concept labels are inferred for historical rows.
+Schema version 3 adds student/topic/time lookup indexes for adaptive difficulty and
+latest-response retrieval. The additive migration preserves existing records.
 
 `modules.learning_profile.get_student_learning_profile(student_id)` provides a
 compact student-scoped profile from SQL aggregates. Concept accuracy uses answered

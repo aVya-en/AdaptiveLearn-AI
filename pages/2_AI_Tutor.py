@@ -181,7 +181,10 @@ with st.container(key="tutor-layout"):
             )
 with conversation_column:
     question = pending["question"] if retry_requested and pending else (typed_prompt or selected_prompt)
-    if question:
+    if question and not question.strip():
+        with transcript:
+            st.warning("Enter a question before sending.")
+    elif question:
         is_retry = bool(retry_requested and pending)
         request_history = list(pending["history"]) if is_retry else list(conversation["messages"])
         fingerprint = pending["fingerprint"] if is_retry else tutor_request_fingerprint(

@@ -325,7 +325,7 @@ class AdaptiveLearningTests(unittest.TestCase):
             database._initialize_database_schema()
             connection = database.get_connection()
             try:
-                self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 2)
+                self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 3)
                 self.assertEqual(connection.execute("SELECT id, concept FROM quiz_responses WHERE id = 9").fetchone()["concept"], "Traversal")
                 columns = {row["name"] for row in connection.execute("PRAGMA table_info(quiz_responses)")}
                 self.assertIn("difficulty", columns)
@@ -618,8 +618,8 @@ class AdaptiveLearningTests(unittest.TestCase):
 
         for index, score in enumerate((30, 40, 50, 60, 70), start=2):
             database.save_quiz_attempt(
-                1, "DSA", "Arrays and strings", "Intermediate", 5,
-                score // 20, float(score), f"progress-{index}",
+                1, "DSA", "Arrays and strings", "Intermediate", 10,
+                score // 10, float(score), f"progress-{index}",
             )
         app.run()
         self.assertFalse(app.exception)
@@ -714,7 +714,7 @@ class AdaptiveLearningTests(unittest.TestCase):
 
         for index, score in enumerate((50, 60, 70, 80, 90), start=2):
             database.save_quiz_attempt(
-                1, "DSA", "Arrays", "Intermediate", 5, score // 20,
+                1, "DSA", "Arrays", "Intermediate", 10, score // 10,
                 float(score), f"trend-{index}",
             )
         database.save_quiz_attempt(2, "DSA", "Student Two private topic", "Beginner", 5, 5, 100.0, "trend-two")
@@ -726,6 +726,10 @@ class AdaptiveLearningTests(unittest.TestCase):
         chart = app.get("vega_lite_chart")[0]
         chart_spec = json.loads(chart.proto.spec)
         self.assertEqual([layer["mark"]["type"] for layer in chart_spec["layer"]], ["line", "point", "point"])
+        self.assertEqual(chart_spec["layer"][0]["mark"]["color"], "#92400E")
+        self.assertEqual(chart_spec["layer"][2]["mark"]["color"], "#92400E")
+        self.assertEqual(chart_spec["config"]["axis"]["labelColor"], "#444444")
+        self.assertEqual(chart_spec["config"]["axis"]["gridColor"], "#E5E5E5")
         self.assertEqual(
             {parameter["name"] for parameter in chart_spec["params"]},
             {"recent_score_hover", "recent_score_zoom"},

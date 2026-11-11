@@ -11,6 +11,7 @@ import streamlit as st
 from database.learning_data import get_learning_data_snapshot
 from modules.learning_profile import build_learning_profile
 from ui.components import render_empty_state, render_kicker
+from ui.theme import THEME
 from utils.auth_ui import require_student
 from utils.performance import finish_page_timer
 from utils.streamlit_ui import render_static_table
@@ -37,10 +38,17 @@ def _build_trend_chart_spec(values: list[dict[str, object]]) -> dict[str, object
     return {
         "data": {"values": values},
         "layer": [
-            {"name": "view_1", "mark": {"type": "line"}, "encoding": encoding},
+            {
+                "name": "view_1",
+                "mark": {"type": "line", "color": THEME["chart-accent"]},
+                "encoding": encoding,
+            },
             {"name": "view_2", "mark": {"type": "point", "opacity": 0}, "encoding": encoding},
             {
-                "mark": {"type": "point", "filled": True, "size": 65},
+                "mark": {
+                    "type": "point", "filled": True, "size": 65,
+                    "color": THEME["chart-accent"],
+                },
                 "encoding": encoding,
                 "transform": [{"filter": {"param": "recent_score_hover", "empty": False}}],
             },
@@ -61,7 +69,18 @@ def _build_trend_chart_spec(values: list[dict[str, object]]) -> dict[str, object
                 "views": ["view_1"],
             },
         ],
-        "config": {"legend": {"symbolType": "stroke"}},
+        "config": {
+            "axis": {
+                "labelColor": THEME["label"],
+                "titleColor": THEME["label"],
+                "gridColor": THEME["chart-grid"],
+                "tickColor": THEME["control-border"],
+                "domainColor": THEME["control-border"],
+            },
+            "background": THEME["surface"],
+            "legend": {"symbolType": "stroke", "labelColor": THEME["label"], "titleColor": THEME["label"]},
+            "view": {"stroke": "transparent"},
+        },
     }
 
 

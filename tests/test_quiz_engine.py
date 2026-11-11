@@ -213,6 +213,13 @@ class QuizPersistenceTests(unittest.TestCase):
         self.assertEqual(stats["quizzes_completed"], 1)
         self.assertEqual(stats["average_score"], 40.0)
 
+    def test_quiz_attempt_rejects_a_score_that_disagrees_with_answer_totals(self) -> None:
+        with self.assertRaisesRegex(ValueError, "must match"):
+            database.save_quiz_attempt(
+                1, "DSA", "Arrays and strings", "Beginner", 5, 2, 100.0, "inconsistent-score"
+            )
+        self.assertEqual(database.get_recent_quiz_attempts(1), [])
+
     def test_dashboard_overview_uses_one_connection_and_is_student_scoped(self) -> None:
         database.save_quiz_attempt(1, "DSA", "Arrays and strings", "Beginner", 5, 4, 80.0, "overview-1")
         connection = database.get_connection()

@@ -248,6 +248,29 @@ class LearningProfileTests(unittest.TestCase):
         finally:
             connection.close()
 
+    def test_response_with_unknown_correctness_is_excluded_from_performance_aggregates(self):
+        attempt_id = database.save_quiz_attempt(
+            1, "DSA", "Arrays and strings", "Beginner", 1, 1, 100.0, "unknown-correctness"
+        )
+        connection = database.get_connection()
+        try:
+            connection.execute(
+                "INSERT INTO quiz_responses "
+                "(student_id, attempt_id, question_id, subject, topic, concept, "
+                "selected_answer, correct_answer, is_correct) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)",
+                (1, attempt_id, "legacy-unknown", "DSA", "Arrays and strings",
+                 "Legacy concept", "A", "A"),
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        profile = get_student_learning_profile(1)["subjects"][0]
+        self.assertEqual(profile["overall_accuracy"], 100.0)
+        self.assertEqual(profile["concept_performance"], [])
+        self.assertEqual(profile["topic_performance"], [])
+
     def test_versioned_migration_preserves_legacy_students_and_attempts(self):
         legacy_path = self.db_path.parent / "legacy-learning.db"
         connection = sqlite3.connect(legacy_path)
@@ -278,7 +301,7 @@ class LearningProfileTests(unittest.TestCase):
             database._initialize_database_schema()
             connection = database.get_connection()
             try:
-                self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 2)
+                self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 3)
                 self.assertEqual(connection.execute("SELECT COUNT(*) FROM students WHERE id = 7").fetchone()[0], 1)
                 attempt = connection.execute(
                     "SELECT id, score, total_questions FROM quiz_attempts WHERE id = 11"
@@ -289,6 +312,39 @@ class LearningProfileTests(unittest.TestCase):
             finally:
                 connection.close()
         database._initialized_paths.discard(legacy_key)
+
+    def test_version_two_migration_adds_lookup_indexes_without_losing_attempts(self):
+        attempt_id = database.save_quiz_attempt(
+            1, "DSA", "Arrays and strings", "Beginner", 5, 4, 80.0, "v2-upgrade"
+        )
+        connection = database.get_connection()
+        try:
+            connection.execute("DROP INDEX idx_quiz_attempts_student_subject_topic_completed")
+            connection.execute("DROP INDEX idx_quiz_responses_student_subject_topic_recent")
+            connection.execute("PRAGMA user_version = 2")
+            connection.commit()
+        finally:
+            connection.close()
+        database._initialized_paths.discard(str(self.db_path.resolve()))
+
+        database.initialize_database()
+
+        connection = database.get_connection()
+        try:
+            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 3)
+            self.assertEqual(
+                connection.execute("SELECT score FROM quiz_attempts WHERE id = ?", (attempt_id,)).fetchone()[0],
+                80.0,
+            )
+            indexes = {row["name"] for row in connection.execute("PRAGMA index_list(quiz_attempts)")}
+            response_indexes = {
+                row["name"] for row in connection.execute("PRAGMA index_list(quiz_responses)")
+            }
+            self.assertIn("idx_quiz_attempts_student_subject_topic_completed", indexes)
+            self.assertIn("idx_quiz_responses_student_subject_topic_recent", response_indexes)
+        finally:
+            connection.close()
+        database._initialized_paths.discard(str(self.db_path.resolve()))
 
 
 if __name__ == "__main__":

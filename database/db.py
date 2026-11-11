@@ -9,7 +9,7 @@ from utils.performance import measure_function
 
 _initialized_paths: set[str] = set()
 _initialization_lock = threading.Lock()
-LEARNING_SCHEMA_VERSION = 2
+LEARNING_SCHEMA_VERSION = 3
 
 
 @measure_function("database.open_connection")
@@ -205,6 +205,16 @@ def _initialize_database_schema() -> None:
                 "ON adaptive_recommendations(student_id, status, subject)"
             )
             connection.execute("PRAGMA user_version = 2")
+        if current_version < 3:
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS idx_quiz_attempts_student_subject_topic_completed "
+                "ON quiz_attempts(student_id, subject, topic, completed_at DESC, id DESC)"
+            )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS idx_quiz_responses_student_subject_topic_recent "
+                "ON quiz_responses(student_id, subject, topic, answered_at DESC, id DESC)"
+            )
+            connection.execute("PRAGMA user_version = 3")
         connection.commit()
     except Exception:
         connection.rollback()
@@ -332,6 +342,8 @@ def save_quiz_attempt(
         raise ValueError("Quiz totals are invalid.")
     if not 0 <= score_percentage <= 100 or not attempt_key.strip():
         raise ValueError("Quiz score or attempt key is invalid.")
+    if score_percentage != round(correct_answers * 100 / total_questions, 2):
+        raise ValueError("Quiz score must match the correct-answer total.")
     connection = get_connection()
     try:
         connection.execute(

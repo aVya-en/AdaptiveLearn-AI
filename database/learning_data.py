@@ -98,7 +98,7 @@ def _query_learning_data_snapshot(student_id: int) -> dict[str, list[dict[str, o
                            ORDER BY answered_at DESC, id DESC
                        ) AS recent_rank
                 FROM labeled
-                WHERE selected_answer IS NOT NULL
+                WHERE selected_answer IS NOT NULL AND is_correct IS NOT NULL
             )
             SELECT subject, topic, concept,
                    COUNT(*) AS attempted,
@@ -126,7 +126,7 @@ def _query_learning_data_snapshot(student_id: int) -> dict[str, list[dict[str, o
                            ORDER BY answered_at DESC, id DESC
                        ) AS recent_rank
                 FROM labeled
-                WHERE selected_answer IS NOT NULL
+                WHERE selected_answer IS NOT NULL AND is_correct IS NOT NULL
             )
             SELECT subject, topic, COUNT(*) AS attempted,
                    SUM(is_correct) AS correct,
